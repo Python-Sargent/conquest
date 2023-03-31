@@ -166,7 +166,7 @@ class Game:
         self.background_rect = self.background_image.get_rect()
         self.background_rect.center = display_params.center
         self.selected_area = None
-    def attack(attack_area, selected_area, _):
+    def attack(self, attack_area, selected_area):
         if selected_area.count < 1:
             return True, attack_area, selected_area
         match self.name:
