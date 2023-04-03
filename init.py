@@ -192,14 +192,31 @@ menu_is_going = True  # starts with the menu
 class HUD:
     def __init__(self):
         font = pygame.font.Font(None, 48)
+        width = DisplayParams.size[0]
+        heihgt = DisplayParams.size[1]
         self.end_turn_image = font.render("End Turn", False, red)
         self.end_turn_rect = self.end_turn_image.get_rect()
-        self.end_turn_rect.center = (DisplayParams.center[0], 32)
+        self.end_turn_rect.center = (DisplayParams.center[0], 24)
+        self.play_name_image = font.render("Player1", False, black)
+        self.play_name_rect = self.play_name_image.get_rect()
+        self.play_name_rect.center = (DisplayParams.center[0] - (DisplayParams.center[0] - width / 20), 24)
+        self.info_image = font.render("Enemies: Bot1(red)", False, black)
+        self.info_rect = self.info_image.get_rect()
+        self.info_rect.center = (DisplayParams.center[0] + (DisplayParams.center[0] - width / 8), 24)
+        self.game_name_image = font.render("Game: Conquest Classic", False, black)
+        self.game_name_rect = self.game_name_image.get_rect()
+        self.game_name_rect.center = (DisplayParams.center[0], DisplayParams.size[1] - 24)
+        self.turn_num_image = font.render("Turn#: 0", False, black)
+        self.turn_num_rect = self.turn_num_image.get_rect()
+        self.turn_num_rect.center = (DisplayParams.center[0] - (DisplayParams.center[0] - width / 20), DisplayParams.size[1] - 24)
+        self.turn_play_image = font.render("Turn: Player1", False, black)
+        self.turn_play_rect = self.turn_play_image.get_rect()
+        self.turn_play_rect.center = (DisplayParams.center[0] + (DisplayParams.center[0] - width / 8), DisplayParams.size[1] - 24)
         self.hudbar_image = pygame.image.load("images/hudbar.png")
         self.hudbar_top_rect = self.hudbar_image.get_rect()
-        self.hudbar_top_rect.center = (DisplayParams.center[0], 48)
+        self.hudbar_top_rect.center = (DisplayParams.center[0], 24)
         self.hudbar_bottom_rect = self.hudbar_image.get_rect()
-        self.hudbar_bottom_rect.center = (DisplayParams.center[0], DisplayParams.size[1] - 48)
+        self.hudbar_bottom_rect.center = (DisplayParams.center[0], DisplayParams.size[1] - 24)
 
 
 class Game:
@@ -292,7 +309,14 @@ def display_screen(game):
                              game.continent.areas[area].rect.center[1] - game.continent.areas[area].count_pos_offset[1])
         screen.blit(game.continent.areas[area].image, game.continent.areas[area].rect)
         screen.blit(count_image, count_rect)
+        screen.blit(game.HUD.hudbar_image, game.HUD.hudbar_top_rect)
+        screen.blit(game.HUD.hudbar_image, game.HUD.hudbar_bottom_rect)
         screen.blit(game.HUD.end_turn_image, game.HUD.end_turn_rect)
+        screen.blit(game.HUD.turn_num_image, game.HUD.turn_num_rect)
+        screen.blit(game.HUD.turn_play_image, game.HUD.turn_play_rect)
+        screen.blit(game.HUD.game_name_image, game.HUD.game_name_rect)
+        screen.blit(game.HUD.info_image, game.HUD.info_rect)
+        screen.blit(game.HUD.play_name_image, game.HUD.play_name_rect)
     pygame.display.flip()
 
 
@@ -303,6 +327,9 @@ def play_game_classic():
     game.players["player1"].color = blue
     game.players["bot1"].color = red
     game.players[""].color = white
+    for area in range(len(game.continent.areas)):
+        game.continent.areas[area].owner = ""
+        game.continent.areas[area].count = 0
     random_area = randint(0, len(game.continent.areas) - 1)
     game.continent.areas[random_area].owner = "player1"
     game.continent.areas[random_area].count = 5
@@ -363,9 +390,8 @@ def play_game_classic():
             turns += 1
         print("Ending turn")
         game.continent.areas[player_home].count += player_areas  # make it so that you can't get stuck, especially when attacked by the bot1 player.
-        game.continent.areas[bot_home].count += bot_areas  # this may make it take a while to kill them, but they are going for world domination.
+        game.continent.areas[bot_home].count += bot_areas  # this may make it take a while to kill them, but they aren't going for world domination.
         game.selected_area = None
-    bot_turn = True
     player_area_numbers = []
     for area in range(len(game.continent.areas)):
         if game.continent.areas[area].owner == "player1":
