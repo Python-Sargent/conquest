@@ -123,26 +123,21 @@ class Player:
     def turn(self, game, rand_area):
         bot_turn = True
         bot_selectable_areas = []
-        print("Bot1's turn has started")
         for area in range(len(game.continent.areas)):
             if game.continent.areas[area].owner == self.name:
                 bot_selectable_areas.append(game.continent.areas[area])
         if bot_selectable_areas:
-            print("Bot1 has selectable areas")
             game.bot_selected_area = bot_selectable_areas[0]
         else:
             bot_turn = False
-            print("WARNING: Bot1 has no selectable areas!")
         while bot_turn is True:
             print(self.display_name + " Attacking: " + game.continent.areas[rand_area].name + ", From: " + game.bot_selected_area.name)
             bot_turn, game.continent.areas[rand_area], game.bot_selected_area, has_succeded = game.attack(game.continent.areas[rand_area], game.bot_selected_area)
             bot_selectable_areas.remove(game.bot_selected_area)
             if bot_selectable_areas:
-                print("Bot1 has selectable areas")
                 game.bot_selected_area = bot_selectable_areas[0]
             else:
                 bot_turn = False
-                print("WARNING: Bot1 has no selectable areas!")
         return game.continent.areas[rand_area]
 
 
@@ -238,6 +233,9 @@ class Game:
 
     def attack(self, attack_area, selected_area):
         has_conquered = False
+        if attack_area.owner == selected_area.owner:
+            print("Cannot attack own area")
+            return not has_conquered, attack_area, selected_area, has_conquered
         while has_conquered is False:
             if selected_area.count < 2:
                 print("Not enough troops in selected area, skipping.")
@@ -266,22 +264,25 @@ class Game:
                 case "conquest_multiplayer":
                     print("Multiplayer unsupported!")
             if attack_area.count < 1:
-                if attack_area.owner == "bot1":
+                if selected_area.owner == "player1":
                     has_conquered = True
                     print("Player1 has defeated the opposing territory")
                     attack_area.owner = "player1"
+                    attack_area.count = 0  # reset the count
                     attack_area.count = -1 + selected_area.count  # move all except one troop into invaded territory
                     selected_area.count -= selected_area.count - 1  # leave one troop
-                elif attack_area.owner == "player1":
+                elif selected_area.owner == "bot1":
                     has_conquered = True
                     print("Bot1 has defeated the opposing territory")
                     attack_area.owner = "bot1"
+                    attack_area.count = 0  # reset the count
                     attack_area.count = -1 + selected_area.count  # move all except one troop into invaded territory
                     selected_area.count -= selected_area.count - 1  # leave one troop
                 elif attack_area.owner == "":
                     has_conquered = True
                     print(selected_area.owner[:1].upper() + selected_area.owner[1:] + " has claimed a territory")
                     attack_area.owner = selected_area.owner
+                    attack_area.count = 0  # reset the count
                     attack_area.count = -1 + selected_area.count  # move all except one troop into invaded territory
                     selected_area.count -= selected_area.count - 1  # leave one troop
         return not has_conquered, attack_area, selected_area, has_conquered
@@ -387,27 +388,40 @@ def play_game_classic():
                     bot_owned_areas.append(game.continent.areas[area])
             if bot_areas <= 0:
                 has_won = True
+                display_screen(game)
                 print("Player1 has beat bot1")
+                break
             player_areas = 0
             for area in range(len(game.continent.areas)):
                 if game.continent.areas[area].owner == "player1":
                     player_areas += 1
             if player_areas <= 0:
                 has_lost = True
+                display_screen(game)
                 print("Player1 has lost to bot1")
+                break
             display_screen(game)
             turns += 1
         print("Player1 ends turn")
-        game.continent.areas[player_home].count += player_areas  # make it so that you can't get stuck, especially when attacked by the bot1 player.
-        game.continent.areas[bot_home].count += bot_areas  # this may make it take a while to kill them, but they aren't going for world domination.
         game.selected_area = None
-        player_area_numbers = []
+        bot_attackbles = []
         for area in range(len(game.continent.areas)):
-            if game.continent.areas[area].owner == "player1":
-                player_area_numbers.append(area)
-        rand_area = randint(0, len(player_area_numbers) - 1)
-        print("Attempting to call {bot1}.turn()")
+            if game.continent.areas[area].owner == "player1" or game.continent.areas[area].owner == "":
+                bot_attackbles.append(area)
+        rand_area = randint(0, len(bot_attackbles) - 1)
         game.continent.areas[rand_area] = game.players["bot1"].turn(game, rand_area)
+        if game.continent.areas[player_home].owner == "player1":
+            game.continent.areas[player_home].count += player_areas  # make it so that you can't get stuck, especially when attacked by the bot1 player.
+        else:
+            for area in range(len(game.continent.areas)):
+                if game.continent.areas[area].owner == "player1":
+                    player_home = area
+            game.continent.areas[
+                player_home].count += player_areas  # do the same, but after having found a new home base
+        for area in range(len(game.continent.areas)):
+            if game.continent.areas[area].owner == "bot1":
+                bot_home = area
+        game.continent.areas[bot_home].count += bot_areas   # this may make it take a while to kill them, but they aren't going for world domination.
     if has_won is True:
         print("Player1 has won!")
         sleep(1)
