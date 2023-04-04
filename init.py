@@ -123,22 +123,27 @@ class Player:
     def turn(self, game, rand_area):
         bot_turn = True
         bot_selectable_areas = []
-        for area in range(len(bot_selectable_areas)):
+        print("Bot1's turn has started")
+        for area in range(len(game.continent.areas)):
             if game.continent.areas[area].owner == self.name:
                 bot_selectable_areas.append(game.continent.areas[area])
         if bot_selectable_areas:
+            print("Bot1 has selectable areas")
             game.bot_selected_area = bot_selectable_areas[0]
         else:
             bot_turn = False
+            print("WARNING: Bot1 has no selectable areas!")
         while bot_turn is True:
             print(self.display_name + " Attacking: " + game.continent.areas[rand_area].name + ", From: " + game.bot_selected_area.name)
             bot_turn, game.continent.areas[rand_area], game.bot_selected_area, has_succeded = game.attack(game.continent.areas[rand_area], game.bot_selected_area)
             bot_selectable_areas.remove(game.bot_selected_area)
             if bot_selectable_areas:
+                print("Bot1 has selectable areas")
                 game.bot_selected_area = bot_selectable_areas[0]
             else:
                 bot_turn = False
-        return bot_turn, game.continent.areas[rand_area], game.bot_selected_area
+                print("WARNING: Bot1 has no selectable areas!")
+        return game.continent.areas[rand_area]
 
 
 class Area:
@@ -194,7 +199,7 @@ class HUD:
         font = pygame.font.Font(None, 48)
         width = DisplayParams.size[0]
         heihgt = DisplayParams.size[1]
-        self.end_turn_image = font.render("End Turn", False, red)
+        self.end_turn_image = font.render("End Turn", True, red)
         self.end_turn_rect = self.end_turn_image.get_rect()
         self.end_turn_rect.center = (DisplayParams.center[0], 24)
         self.play_name_image = font.render("Player1", False, black)
@@ -235,16 +240,16 @@ class Game:
         has_conquered = False
         while has_conquered is False:
             if selected_area.count < 2:
-                print("not enough troops in selected area, skipping.")
+                print("Not enough troops in selected area, skipping.")
                 return not has_conquered, attack_area, selected_area, has_conquered
             match self.name:
                 case "conquest_classic":
                     lose_win = randint(0, 11)
                     if lose_win < 5:
-                        print("attacked area lost 1 troop")
+                        print("Attacked area lost 1 troop")
                         attack_area.count -= 1
                     else:
-                        print("selected area lost 1 troop")
+                        print("Aelected area lost 1 troop")
                         selected_area.count -= 1
                 case "conquest_mission":
                     lose_win = randint(0, 11)
@@ -259,23 +264,23 @@ class Game:
                     else:
                         selected_area.count -= 1
                 case "conquest_multiplayer":
-                    print("multiplayer unsupported")
+                    print("Multiplayer unsupported!")
             if attack_area.count < 1:
                 if attack_area.owner == "bot1":
                     has_conquered = True
-                    print("you have defeated the opposing territory")
+                    print("Player1 has defeated the opposing territory")
                     attack_area.owner = "player1"
                     attack_area.count = -1 + selected_area.count  # move all except one troop into invaded territory
                     selected_area.count -= selected_area.count - 1  # leave one troop
                 elif attack_area.owner == "player1":
                     has_conquered = True
-                    print("bot1 has defeated the opposing territory")
+                    print("Bot1 has defeated the opposing territory")
                     attack_area.owner = "bot1"
                     attack_area.count = -1 + selected_area.count  # move all except one troop into invaded territory
                     selected_area.count -= selected_area.count - 1  # leave one troop
                 elif attack_area.owner == "":
                     has_conquered = True
-                    print(selected_area.owner + " has claimed a territory")
+                    print(selected_area.owner[:1].upper() + selected_area.owner[1:] + " has claimed a territory")
                     attack_area.owner = selected_area.owner
                     attack_area.count = -1 + selected_area.count  # move all except one troop into invaded territory
                     selected_area.count -= selected_area.count - 1  # leave one troop
@@ -333,7 +338,7 @@ def play_game_classic():
     random_area = randint(0, len(game.continent.areas) - 1)
     game.continent.areas[random_area].owner = "player1"
     game.continent.areas[random_area].count = 5
-    print("player1 home area is: " + game.continent.areas[random_area].name)
+    print("Player1 home area is: " + game.continent.areas[random_area].name)
     player_home = random_area
     bot_home = random_area - 1
     game.continent.areas[random_area - 1].owner = "bot1"
@@ -345,6 +350,10 @@ def play_game_classic():
     has_lost = False
     while (game.maxturns > turns) and (has_quit is False) and not (has_won is True) and not (has_lost is True):
         turn = True
+        font = pygame.font.Font(None, 48)
+        game.HUD.turn_num_image = font.render("Turn#: " + str(turns), False, black)
+        game.HUD.turn_num_rect = game.HUD.turn_num_image.get_rect()
+        game.HUD.turn_num_rect.center = (DisplayParams.center[0] - (DisplayParams.center[0] - DisplayParams.size[0] / 20), DisplayParams.size[1] - 24)
         player_areas = 0
         bot_areas = 0
         display_screen(game)
@@ -361,46 +370,51 @@ def play_game_classic():
                         if game.continent.areas[area].rect.collidepoint(pos[0], pos[1]):
                             if game.continent.areas[area].owner == "player1":
                                 game.selected_area = game.continent.areas[area]
-                                print("Selecting area: " + game.continent.areas[area].name)
+                                print("Player1 selecting area: " + game.continent.areas[area].name)
                             elif game.continent.areas[area].owner == "bot1" or game.continent.areas[area].owner == "":
                                 if game.selected_area is None:
                                     print("No Area selected, cannot attack")
                                 else:
-                                    print("Attacking area: " + game.continent.areas[area].name + ", From : " + game.selected_area.name)
+                                    print("Player1 attacking area: " + game.continent.areas[area].name + ", From: " + game.selected_area.name)
                                     turn, game.continent.areas[area], game.selected_area, succeded = game.attack(game.continent.areas[area], game.selected_area)
                     if game.HUD.end_turn_rect.collidepoint(pos[0], pos[1]):
                         turn = False
-                        break
             bot_areas = 0
+            bot_owned_areas = []
             for area in range(len(game.continent.areas)):
                 if game.continent.areas[area].owner == "bot1":
                     bot_areas += 1
+                    bot_owned_areas.append(game.continent.areas[area])
             if bot_areas <= 0:
                 has_won = True
-                print("You have beat bot1")
+                print("Player1 has beat bot1")
             player_areas = 0
             for area in range(len(game.continent.areas)):
                 if game.continent.areas[area].owner == "player1":
                     player_areas += 1
             if player_areas <= 0:
                 has_lost = True
-                print("You have lost to bot1")
-
+                print("Player1 has lost to bot1")
             display_screen(game)
             turns += 1
-        print("Ending turn")
+        print("Player1 ends turn")
         game.continent.areas[player_home].count += player_areas  # make it so that you can't get stuck, especially when attacked by the bot1 player.
         game.continent.areas[bot_home].count += bot_areas  # this may make it take a while to kill them, but they aren't going for world domination.
         game.selected_area = None
-    player_area_numbers = []
-    for area in range(len(game.continent.areas)):
-        if game.continent.areas[area].owner == "player1":
-            player_area_numbers.append(area)
-    rand_area = randint(0, len(player_area_numbers) - 1)
-    bot_turn, game.continent.areas[rand_area], game.bot_selected_area = game.players["bot1"].turn(game, rand_area)
+        player_area_numbers = []
+        for area in range(len(game.continent.areas)):
+            if game.continent.areas[area].owner == "player1":
+                player_area_numbers.append(area)
+        rand_area = randint(0, len(player_area_numbers) - 1)
+        print("Attempting to call {bot1}.turn()")
+        game.continent.areas[rand_area] = game.players["bot1"].turn(game, rand_area)
     if has_won is True:
+        print("Player1 has won!")
+        sleep(1)
         win_game(game.players["player1"].display_name)
     elif has_lost is True:
+        print("Player1 has lost.")
+        sleep(1)
         lose_game()
 
 
