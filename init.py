@@ -134,61 +134,58 @@ def get_player_color(game_type, player):
 
 
 class Player:
-    def __init__(self, name="player1", game_type="singleplayer"):
+    def __init__(self, name="player1", player_type="bot", game_type="singleplayer"):
         self.name = name
         self.display_name = name[:1].upper() + name[1:]  # Change name to uppercase first letter
         self.color = get_player_color(game_type, name)
-
+        self.player_type = player_type
+    
     def turn(self, game):
-        bot_turn = True
-        bot_selectable_areas = []
-        for area in range(len(game.continent.areas)):
-            if game.continent.areas[area].owner == self.name:
-                bot_selectable_areas.append(game.continent.areas[area])
-        if bot_selectable_areas:
-            game.bot_selected_area = bot_selectable_areas[0]
-        else:
-            bot_turn = False
-        bot_attackbles = []
-        for area in range(len(game.continent.areas)):
-            if game.continent.areas[area].owner == "player1" or game.continent.areas[area].owner == "":
-                bot_attack = game.continent.areas[area]
-                break
-        bot_attack_index = 0
-        for area in range(len(game.continent.areas)):
-            if game.continent.areas[area].owner == "player1" or game.continent.areas[area].owner == "":
-                if game.continent.areas[area].count < bot_attack.count:
-                    bot_attack = game.continent.areas[area]
-                    bot_attack_index = area
-        while bot_turn is True and game.bot_selected_area.count > bot_attack.count * 5:
-            print(self.display_name + " Attacking: " + game.continent.areas[bot_attack_index].name + ", From: " + game.bot_selected_area.name)
-            bot_turn, game.continent.areas[bot_attack_index], game.bot_selected_area, has_succeded = game.attack(game.continent.areas[bot_attack_index], game.bot_selected_area)
-            bot_selectable_areas.remove(game.bot_selected_area)
+        if self.player_type == "bot":
+            bot_turn = True
+            bot_selectable_areas = []
+            for area in range(len(game.continent.areas)):
+                if game.continent.areas[area].owner == self.name:
+                    bot_selectable_areas.append(game.continent.areas[area])
             if bot_selectable_areas:
                 game.bot_selected_area = bot_selectable_areas[0]
             else:
                 bot_turn = False
-        return game.continent.areas
-
+            bot_attackbles = []
+            for area in range(len(game.continent.areas)):
+                if game.continent.areas[area].owner == "player1" or game.continent.areas[area].owner == "":
+                    bot_attack = game.continent.areas[area]
+                    break
+            bot_attack_index = 0
+            for area in range(len(game.continent.areas)):
+                if game.continent.areas[area].owner == "player1" or game.continent.areas[area].owner == "":
+                    if game.continent.areas[area].count < bot_attack.count:
+                        bot_attack = game.continent.areas[area]
+                        bot_attack_index = area
+            while bot_turn is True and game.bot_selected_area.count > bot_attack.count * 4:  #1 less than the loss level (5 - 1 = 4) this little bot takes chances
+                print(self.display_name + " Attacking: " + game.continent.areas[bot_attack_index].name + ", From: " + game.bot_selected_area.name)
+                bot_turn, game.continent.areas[bot_attack_index], game.bot_selected_area, has_succeded = game.attack(game.continent.areas[bot_attack_index], game.bot_selected_area)
+                bot_selectable_areas.remove(game.bot_selected_area)
+                if bot_selectable_areas:
+                    game.bot_selected_area = bot_selectable_areas[0]
+                else:
+                    bot_turn = False
+            return game.continent.areas
+        elif self.player_type == "player":
+            return game.continent.areas
+        else:
+            return game.continent.areas  # just return, cannot pass because requires returned values
 
 class Area:
     def __init__(self, name="", area_pos=(0, 0), offset=(0, 0)):
         self.name = name
         self.display_name = name[:1].upper() + name[1:]  # Change name to uppercase first letter
-        self.image = pygame.image.load("images/area_" + name + ".png")  # ex: images/area_england.png
+        self.image = pygame.image.load("images/selection_area.png")
         self.rect = self.image.get_rect()
         self.rect.center = area_pos
         self.owner = ""
         self.count = 0
         self.count_pos_offset = offset
-
-
-def add_player(name, ptype):
-    players[name] = Player(name, ptype)
-
-
-def remove_player(name):
-    players[name] = None
 
 
 """
@@ -206,13 +203,13 @@ class Europe:
     color = blue
 
 
-Europe.areas.append(Area("england", (DisplayParams.center[0] - DisplayParams.center[0] / 2.25, DisplayParams.center[1] - DisplayParams.center[0] / 5.5), (0, 24)))
-Europe.areas.append(Area("franconia", (DisplayParams.center[0] - DisplayParams.center[0] / 2.83, DisplayParams.center[1] + DisplayParams.center[0] / 9.9), (0, -32)))
-Europe.areas.append(Area("sweden", (DisplayParams.center[0] - DisplayParams.center[0] / 8.6, DisplayParams.center[1] - DisplayParams.center[0] / 2.92), (0, 48)))
-Europe.areas.append(Area("spain", (DisplayParams.center[0] - DisplayParams.center[0] / 2.05, DisplayParams.center[1] + DisplayParams.center[0] / 3.25), (0, -48)))
-Europe.areas.append(Area("moscovy", (DisplayParams.center[0] + DisplayParams.center[0] / 3.15, DisplayParams.center[1] - DisplayParams.center[0] / 5.48), (0, 80)))
-Europe.areas.append(Area("germana", (DisplayParams.center[0] - DisplayParams.center[0] / 7.5, DisplayParams.center[1] + DisplayParams.center[0] / 20), (0, 48)))
-Europe.areas.append(Area("ottoman", (DisplayParams.center[0] + DisplayParams.center[0] / 3.23, DisplayParams.center[1] + DisplayParams.center[0] / 4.8), (0, -48)))
+Europe.areas.append(Area("england", (DisplayParams.center[0] - DisplayParams.center[0] / 2.25, DisplayParams.center[1] - DisplayParams.center[0] / 5.5), (0, 0)))
+Europe.areas.append(Area("franconia", (DisplayParams.center[0] - DisplayParams.center[0] / 2.83, DisplayParams.center[1] + DisplayParams.center[0] / 9.9), (0, 0)))
+Europe.areas.append(Area("sweden", (DisplayParams.center[0] - DisplayParams.center[0] / 8.6, DisplayParams.center[1] - DisplayParams.center[0] / 2.3), (0, 0)))
+Europe.areas.append(Area("spain", (DisplayParams.center[0] - DisplayParams.center[0] / 2.05, DisplayParams.center[1] + DisplayParams.center[0] / 2.65), (0, 0)))
+Europe.areas.append(Area("moscovy", (DisplayParams.center[0] + DisplayParams.center[0] / 3.15, DisplayParams.center[1] - DisplayParams.center[0] / 2.6), (0, 0)))
+Europe.areas.append(Area("germana", (DisplayParams.center[0] - DisplayParams.center[0] / 7.5, DisplayParams.center[1] + DisplayParams.center[0] / 8.5), (0, 0)))
+Europe.areas.append(Area("ottoman", (DisplayParams.center[0] + DisplayParams.center[0] / 7.2, DisplayParams.center[1] + DisplayParams.center[0] / 4.2), (0, 0)))
 
 continents = [Europe]
 
@@ -258,6 +255,9 @@ class Game:
         self.background_image = pygame.image.load("images/ocean.png")
         self.background_rect = self.background_image.get_rect()
         self.background_rect.center = DisplayParams.center
+        self.continent_image = pygame.image.load("images/europe_map.png")
+        self.continent_rect = self.continent_image.get_rect()
+        self.continent_rect.center = DisplayParams.center
         self.selected_area = None
         self.HUD = HUD()
 
@@ -265,23 +265,19 @@ class Game:
         has_conquered = False
         if attack_area.owner == selected_area.owner:
             self.HUD = log_action(self, "Cannot attack self")
-            print("Cannot attack own area")
             return not has_conquered, attack_area, selected_area, has_conquered
         while has_conquered is False:
             if selected_area.count < 2:
-                self.HUD = log_action(self, "Not enough troops")
-                print("Not enough troops in selected area, skipping.")
+                self.HUD = log_action(self, "Not enough troops, skipping")
                 return not has_conquered, attack_area, selected_area, has_conquered
             match self.name:
                 case "conquest_classic":
                     lose_win = randint(0, 15)
                     if lose_win < 5:
                         self.HUD = log_action(self, "Defender Lost")
-                        print("Attacked area lost 1 troop")
                         attack_area.count -= 1
                     else:
                         self.HUD = log_action(self, "Attacker Lost")
-                        print("Selected area lost 1 troop")
                         selected_area.count -= 1
                 case "conquest_mission":
                     lose_win = randint(0, 11)
@@ -300,24 +296,21 @@ class Game:
             if attack_area.count < 1 and selected_area.count > 1:
                 if selected_area.owner == "player1":
                     has_conquered = True
-                    self.HUD = log_action(self, "Player1 conquered another area")
-                    print("Player1 has defeated the opposing territory")
+                    self.HUD = log_action(self, "Player1 conquered an area")
                     attack_area.owner = "player1"
                     attack_area.count = 0  # reset the count
                     attack_area.count = -1 + selected_area.count  # move all except one troop into invaded territory
                     selected_area.count -= selected_area.count - 1  # leave one troop
                 elif selected_area.owner == "bot1":
                     has_conquered = True
-                    self.HUD = log_action(self, "Bot1 conquered another area")
-                    print("Bot1 has defeated the opposing territory")
+                    self.HUD = log_action(self, "Bot1 conquered an area")
                     attack_area.owner = "bot1"
                     attack_area.count = 0  # reset the count
                     attack_area.count = -1 + selected_area.count  # move all except one troop into invaded territory
                     selected_area.count -= selected_area.count - 1  # leave one troop
                 elif attack_area.owner == "":
                     has_conquered = True
-                    self.HUD = log_action(self, selected_area.owner[:1].upper() + selected_area.owner[1:] + " claimed a new area")
-                    print(selected_area.owner[:1].upper() + selected_area.owner[1:] + " has claimed a territory")
+                    self.HUD = log_action(self, selected_area.owner[:1].upper() + selected_area.owner[1:] + " claimed an area")
                     attack_area.owner = selected_area.owner
                     attack_area.count = 0  # reset the count
                     attack_area.count = -1 + selected_area.count  # move all except one troop into invaded territory
@@ -344,22 +337,22 @@ def start_game(game_type):
 def display_screen(game):
     screen.fill(black)
     screen.blit(game.background_image, game.background_rect)
+    screen.blit(game.continent_image, game.continent_rect)
     for area in range(len(game.continent.areas)):
-        font = pygame.font.Font(None, 48)
+        font = pygame.font.Font(None, 64)
         count_image = font.render(str(game.continent.areas[area].count), False, game.players[game.continent.areas[area].owner].color)
         count_rect = count_image.get_rect()
-        count_rect.center = (game.continent.areas[area].rect.center[0] - game.continent.areas[area].count_pos_offset[0],
-                             game.continent.areas[area].rect.center[1] - game.continent.areas[area].count_pos_offset[1])
+        count_rect.center = (game.continent.areas[area].rect.center[0] - game.continent.areas[area].count_pos_offset[0], game.continent.areas[area].rect.center[1] - game.continent.areas[area].count_pos_offset[1])
         screen.blit(game.continent.areas[area].image, game.continent.areas[area].rect)
         screen.blit(count_image, count_rect)
-        screen.blit(game.HUD.hudbar_image, game.HUD.hudbar_top_rect)
-        screen.blit(game.HUD.hudbar_image, game.HUD.hudbar_bottom_rect)
-        screen.blit(game.HUD.end_turn_image, game.HUD.end_turn_rect)
-        screen.blit(game.HUD.select_image, game.HUD.select_rect)
-        screen.blit(game.HUD.turn_play_image, game.HUD.turn_play_rect)
-        screen.blit(game.HUD.game_name_image, game.HUD.game_name_rect)
-        screen.blit(game.HUD.info_image, game.HUD.info_rect)
-        screen.blit(game.HUD.play_name_image, game.HUD.play_name_rect)
+    screen.blit(game.HUD.hudbar_image, game.HUD.hudbar_top_rect)
+    screen.blit(game.HUD.hudbar_image, game.HUD.hudbar_bottom_rect)
+    screen.blit(game.HUD.end_turn_image, game.HUD.end_turn_rect)
+    screen.blit(game.HUD.select_image, game.HUD.select_rect)
+    screen.blit(game.HUD.turn_play_image, game.HUD.turn_play_rect)
+    screen.blit(game.HUD.game_name_image, game.HUD.game_name_rect)
+    screen.blit(game.HUD.info_image, game.HUD.info_rect)
+    screen.blit(game.HUD.play_name_image, game.HUD.play_name_rect)
     pygame.display.flip()
 
 def log_action(game, msg):
@@ -372,7 +365,7 @@ def log_action(game, msg):
 def play_game_classic():
     play_track("music/play.wav", 0.5)
     game = Game("conquest_classic")
-    game.players = {"player1": Player("player1", "singleplayer"), "bot1": Player("bot1", "singleplayer"), "": Player("gaia1", "singleplayer")}
+    game.players = {"player1": Player("player1", "player"), "bot1": Player("bot1", "bot"), "": Player("gaia1", "unclaimed")}
     game.players["player1"].color = blue
     game.players["bot1"].color = red
     game.players[""].color = white
@@ -381,12 +374,11 @@ def play_game_classic():
         game.continent.areas[area].count = 0
     random_area = randint(0, len(game.continent.areas) - 1)
     game.continent.areas[random_area].owner = "player1"
-    game.continent.areas[random_area].count = 5
-    print("Player1 home area is: " + game.continent.areas[random_area].name)
+    game.continent.areas[random_area].count = 10
     player_home = random_area
     bot_home = random_area - 1
     game.continent.areas[random_area - 1].owner = "bot1"
-    game.continent.areas[random_area - 1].count = 5
+    game.continent.areas[random_area - 1].count = 10
     game.bot_selected_area = game.continent.areas[random_area - 1]
     turns = 0
     has_quit = False
@@ -412,46 +404,47 @@ def play_game_classic():
                         if game.continent.areas[area].rect.collidepoint(pos[0], pos[1]):
                             if game.continent.areas[area].owner == "player1":
                                 game.selected_area = game.continent.areas[area]
+                                game.selected_area.image = pygame.image.load("images/selection_area_selected.png")
                                 game.HUD.select_image = font.render("Selected: " + game.continent.areas[area].display_name, False, black)
                                 game.HUD.select_rect = game.HUD.select_image.get_rect()
                                 game.HUD.select_rect.center = (DisplayParams.center[0] - (DisplayParams.center[0] - DisplayParams.size[0] / 8), DisplayParams.size[1] - 24)
-                                print("Player1 selecting area: " + game.continent.areas[area].name)
                             elif game.continent.areas[area].owner == "bot1" or game.continent.areas[area].owner == "":
                                 if game.selected_area is None:
-                                    print("No Area selected, cannot attack")
                                     game.HUD = log_action(game, "No selection")
                                 else:
                                     print("Player1 attacking area: " + game.continent.areas[area].name + ", From: " + game.selected_area.name)
                                     turn, game.continent.areas[area], game.selected_area, succeded = game.attack(game.continent.areas[area], game.selected_area)
                     if game.HUD.end_turn_rect.collidepoint(pos[0], pos[1]):
                         turn = False
-                        break
             bot_areas = 0
+            player_areas = 0
             bot_owned_areas = []
             for area in range(len(game.continent.areas)):
                 if game.continent.areas[area].owner == "bot1":
                     bot_areas += 1
                     bot_owned_areas.append(game.continent.areas[area])
+                elif game.continent.areas[area].owner == "player1":
+                    player_areas += 1
             if bot_areas <= 0:
                 has_won = True
                 display_screen(game)
-                game.HUD = log_action(game, "Player1 has won")
-                print("Player1 has beat bot1")
+                game.HUD = log_action(game, "Bot1 has lost")
                 break
-            player_areas = 0
-            for area in range(len(game.continent.areas)):
-                if game.continent.areas[area].owner == "player1":
-                    player_areas += 1
             if player_areas <= 0:
                 has_lost = True
                 display_screen(game)
                 game.HUD = log_action(game, "Player1 has lost")
-                print("Player1 has lost to bot1")
                 break
             display_screen(game)
             turns += 1
-        game.selected_area = None
-        game.continent.areas = game.players["bot1"].turn(game)
+        if game.selected_area:
+            game.selected_area.image = pygame.image.load("images/selection_area.png")
+            game.selected_area = None
+        game.HUD.select_image = font.render("Selected: ", False, black)
+        game.HUD.select_rect = game.HUD.select_image.get_rect()
+        game.HUD.select_rect.center = (DisplayParams.center[0] - (DisplayParams.center[0] - DisplayParams.size[0] / 8), DisplayParams.size[1] - 24)
+        for player in game.players:
+            game.continent.areas = game.players[player].turn(game)
         if game.continent.areas[player_home].owner == "player1":
             game.continent.areas[player_home].count += player_areas  # make it so that you can't get stuck, especially when attacked by the bot1 player.
         else:
