@@ -380,6 +380,8 @@ def menu_transition_close():
         size = overlay.get_size()
         size = (size[0] * step, size[1] * step)
         overlay = pygame.transform.scale(overlay, size)
+        rect = overlay.get_rect()
+        rect.center = (DisplayParams.center[0], DisplayParams.center[1])
         screen.blit(overlay, rect)
         pygame.display.flip()
         step += 0.25
