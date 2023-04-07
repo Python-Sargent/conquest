@@ -245,6 +245,26 @@ class HUD:
         self.hudbar_bottom_rect = self.hudbar_image.get_rect()
         self.hudbar_bottom_rect.center = (DisplayParams.center[0], DisplayParams.size[1] - 24)
 
+def display_screen(game):
+    screen.fill(black)
+    screen.blit(game.background_image, game.background_rect)
+    screen.blit(game.continent_image, game.continent_rect)
+    for area in range(len(game.continent.areas)):
+        font = pygame.font.Font(None, 64)
+        count_image = font.render(str(game.continent.areas[area].count), False, game.players[game.continent.areas[area].owner].color)
+        count_rect = count_image.get_rect()
+        count_rect.center = (game.continent.areas[area].rect.center[0] - game.continent.areas[area].count_pos_offset[0], game.continent.areas[area].rect.center[1] - game.continent.areas[area].count_pos_offset[1])
+        screen.blit(game.continent.areas[area].image, game.continent.areas[area].rect)
+        screen.blit(count_image, count_rect)
+    screen.blit(game.HUD.hudbar_image, game.HUD.hudbar_top_rect)
+    screen.blit(game.HUD.hudbar_image, game.HUD.hudbar_bottom_rect)
+    screen.blit(game.HUD.end_turn_image, game.HUD.end_turn_rect)
+    screen.blit(game.HUD.select_image, game.HUD.select_rect)
+    screen.blit(game.HUD.turn_play_image, game.HUD.turn_play_rect)
+    screen.blit(game.HUD.game_name_image, game.HUD.game_name_rect)
+    screen.blit(game.HUD.info_image, game.HUD.info_rect)
+    screen.blit(game.HUD.play_name_image, game.HUD.play_name_rect)
+    pygame.display.flip()
 
 class Game:
     def __init__(self, name="", maxturns=1000):
@@ -270,6 +290,9 @@ class Game:
             if selected_area.count < 2:
                 self.HUD = log_action(self, "Not enough troops, skipping")
                 return not has_conquered, attack_area, selected_area, has_conquered
+            sleep(0.05)
+            attack_area.image = pygame.image.load("images/selection_area_attack.png")
+            display_screen(self)
             match self.name:
                 case "conquest_classic":
                     lose_win = randint(0, 15)
@@ -315,6 +338,7 @@ class Game:
                     attack_area.count = 0  # reset the count
                     attack_area.count = -1 + selected_area.count  # move all except one troop into invaded territory
                     selected_area.count -= selected_area.count - 1  # leave one troop
+        attack_area.image = pygame.image.load("images/selection_area.png")
         return not has_conquered, attack_area, selected_area, has_conquered
 
 
@@ -333,28 +357,6 @@ def start_game(game_type):
         case _:
             raise ValueError("Game type not specified or not known.")
 
-
-def display_screen(game):
-    screen.fill(black)
-    screen.blit(game.background_image, game.background_rect)
-    screen.blit(game.continent_image, game.continent_rect)
-    for area in range(len(game.continent.areas)):
-        font = pygame.font.Font(None, 64)
-        count_image = font.render(str(game.continent.areas[area].count), False, game.players[game.continent.areas[area].owner].color)
-        count_rect = count_image.get_rect()
-        count_rect.center = (game.continent.areas[area].rect.center[0] - game.continent.areas[area].count_pos_offset[0], game.continent.areas[area].rect.center[1] - game.continent.areas[area].count_pos_offset[1])
-        screen.blit(game.continent.areas[area].image, game.continent.areas[area].rect)
-        screen.blit(count_image, count_rect)
-    screen.blit(game.HUD.hudbar_image, game.HUD.hudbar_top_rect)
-    screen.blit(game.HUD.hudbar_image, game.HUD.hudbar_bottom_rect)
-    screen.blit(game.HUD.end_turn_image, game.HUD.end_turn_rect)
-    screen.blit(game.HUD.select_image, game.HUD.select_rect)
-    screen.blit(game.HUD.turn_play_image, game.HUD.turn_play_rect)
-    screen.blit(game.HUD.game_name_image, game.HUD.game_name_rect)
-    screen.blit(game.HUD.info_image, game.HUD.info_rect)
-    screen.blit(game.HUD.play_name_image, game.HUD.play_name_rect)
-    pygame.display.flip()
-
 def log_action(game, msg):
     font = pygame.font.Font(None, 32)
     game.HUD.info_image = font.render(str(msg), False, black)
@@ -362,7 +364,49 @@ def log_action(game, msg):
     game.HUD.info_rect.center = (DisplayParams.center[0] + (DisplayParams.center[0] - DisplayParams.size[0] / 8), 24)
     return game.HUD
 
+def menu_transition_close():
+    overlay = pygame.image.load("images/menu_transition_scale.png")
+    rect = overlay.get_rect()
+    rect.center = (DisplayParams.center[0], DisplayParams.center[1])
+    scale = 1  # ends at 6
+    size = overlay.get_size()
+    size = (size[0] * scale, size[1] * scale)
+    overlay = pygame.transform.scale(overlay, size)
+    screen.blit(overlay, rect)
+    pygame.display.flip()
+    step = 1
+    while step <= 6:
+        sleep(0.125)
+        size = overlay.get_size()
+        size = (size[0] * step, size[1] * step)
+        overlay = pygame.transform.scale(overlay, size)
+        screen.blit(overlay, rect)
+        pygame.display.flip()
+        step += 0.25
+        
+
+def menu_transition_open():
+    overlay = pygame.image.load("images/menu_transition_scale.png")
+    rect = overlay.get_rect()
+    rect.center = (DisplayParams.center[0], DisplayParams.center[1])
+    scale = 6  # ends at 1
+    size = overlay.get_size()
+    size = (size[0] * scale, size[1] * scale)
+    overlay = pygame.transform.scale(overlay, size)
+    screen.blit(overlay, rect)
+    pygame.display.flip()
+    step = 6
+    while step > 1:
+        sleep(0.125)
+        size = overlay.get_size()
+        size = (size[0] * step, size[1] * step)
+        overlay = pygame.transform.scale(overlay, size)
+        screen.blit(overlay, rect)
+        pygame.display.flip()
+        step -= 0.25
+
 def play_game_classic():
+    menu_transition_open()
     play_track("music/play.wav", 0.5)
     game = Game("conquest_classic")
     game.players = {"player1": Player("player1", "player"), "bot1": Player("bot1", "bot"), "": Player("gaia1", "unclaimed")}
@@ -444,6 +488,7 @@ def play_game_classic():
         game.HUD.select_rect = game.HUD.select_image.get_rect()
         game.HUD.select_rect.center = (DisplayParams.center[0] - (DisplayParams.center[0] - DisplayParams.size[0] / 8), DisplayParams.size[1] - 24)
         for player in game.players:
+            sleep(0.05)
             game.continent.areas = game.players[player].turn(game)
         if game.continent.areas[player_home].owner == "player1":
             game.continent.areas[player_home].count += player_areas  # make it so that you can't get stuck, especially when attacked by the bot1 player.
@@ -465,6 +510,7 @@ def play_game_classic():
         print("Player1 has lost.")
         sleep(1)
         lose_game()
+    menu_transition_close()
 
 
 def play_game_mission():
@@ -479,8 +525,8 @@ def play_game_multiplayer():
     play_track("music/play.wav", 0.5)
     print("Multiplayer is not implemented in this version, please just use singleplayer campaigns.")
 
-
 def win_game(player):
+    menu_transition_open()
     global menu_is_going
     play_track("music/win.wav", 0.5)
     font = pygame.font.Font(None, DisplayParams.title_size)
@@ -520,9 +566,11 @@ def win_game(player):
         pygame.display.flip()
     play_track("music/background.wav", 0.5)
     menu_is_going = True
+    menu_transition_close()
 
 
 def lose_game(player):
+    menu_transition_open()
     global menu_is_going
     play_track("music/win.wav", 0.5)
     font = pygame.font.Font(None, DisplayParams.title_size)
@@ -562,6 +610,7 @@ def lose_game(player):
         pygame.display.flip()
     play_track("music/background.wav", 0.5)
     menu_is_going = True
+    menu_transition_close()
 
 
 def choose_offset(stage):
@@ -569,6 +618,7 @@ def choose_offset(stage):
 
 
 def choose_game():
+    menu_transition_open()
     unused_player_colors = colors[:]
     # setup
     global menu_is_going
@@ -635,6 +685,8 @@ def choose_game():
         screen.blit(back_img, back_rect)
         pygame.display.flip()
     play_track("music/background.wav", 0.5)
+    if not choosing:
+        menu_transition_close()
 
 font = pygame.font.Font(None, DisplayParams.title_size)
 title_img = font.render("Main Menu", False, darkgrey)
@@ -659,8 +711,10 @@ while menu_is_going is True:
     if event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed():
         pos = pygame.mouse.get_pos()
         if play_rect.collidepoint(pos[0], pos[1]):
+            menu_transition_close()
             choose_game()
         elif quit_rect.collidepoint(pos[0], pos[1]):
+            menu_transition_close()
             menu_is_going = False
 
     screen.fill(darkgrey)
