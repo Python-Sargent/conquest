@@ -152,17 +152,18 @@ class Player:
             else:
                 bot_turn = False
             bot_attackbles = []
-            for area in range(len(game.continent.areas)):
-                if game.continent.areas[area].owner == "player1" or game.continent.areas[area].owner == "":
+            for area in range(len(game.continent.areas)): # find an attackable area
+                if game.continent.areas[area].owner != self.name:
+                    bot_attackbles.append(game.continent.areas[area])
                     bot_attack = game.continent.areas[area]
                     break
             bot_attack_index = 0
             for area in range(len(game.continent.areas)):
-                if game.continent.areas[area].owner == "player1" or game.continent.areas[area].owner == "":
+                if game.continent.areas[area].owner != self.name:
                     if game.continent.areas[area].count < bot_attack.count:
                         bot_attack = game.continent.areas[area]
                         bot_attack_index = area
-            while bot_turn is True and game.bot_selected_area.count > bot_attack.count * 4:  #1 less than the loss level (5 - 1 = 4) this little bot takes chances
+            while bot_turn is True and game.bot_selected_area.count > bot_attack.count * 4:  #1 less than the loss level (5 - 1 = 4); this little bot takes chances
                 print(self.display_name + " Attacking: " + game.continent.areas[bot_attack_index].name + ", From: " + game.bot_selected_area.name)
                 bot_turn, game.continent.areas[bot_attack_index], game.bot_selected_area, has_succeded = game.attack(game.continent.areas[bot_attack_index], game.bot_selected_area)
                 bot_selectable_areas.remove(game.bot_selected_area)
@@ -170,11 +171,46 @@ class Player:
                     game.bot_selected_area = bot_selectable_areas[0]
                 else:
                     bot_turn = False
-            return game.continent.areas
+            return game.continent.areas, game.HUD, game.selected_area
         elif self.player_type == "player":
-            return game.continent.areas
+            turn = True
+            while turn is True:
+                clock.tick(60)
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        turn = False
+                        has_quit = True
+                        break
+                    elif event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed():
+                        pos = pygame.mouse.get_pos()
+                        for area in range(len(game.continent.areas)):
+                            if game.continent.areas[area].rect.collidepoint(pos[0], pos[1]):
+                                if game.continent.areas[area].owner == "player1":
+                                    if game.selected_area:
+                                        game.selected_area.image = pygame.image.load("images/selection_area.png")
+                                        game.selected_area = None
+                                    game.selected_area = game.continent.areas[area]
+                                    game.selected_area.image = pygame.image.load("images/selection_area_selected.png")
+                                    game.HUD.select_image = font.render("Selected: " + game.continent.areas[area].display_name, False, black)
+                                    game.HUD.select_rect = game.HUD.select_image.get_rect()
+                                    game.HUD.select_rect.center = (DisplayParams.center[0] - (DisplayParams.center[0] - DisplayParams.size[0] / 8), DisplayParams.size[1] - 24)
+                                elif game.continent.areas[area].owner == "bot1" or game.continent.areas[area].owner == "":
+                                    if game.selected_area is None:
+                                        game.HUD = log_action(game, "No selection")
+                                    else:
+                                        print("Player1 attacking area: " + game.continent.areas[area].name + ", From: " + game.selected_area.name)
+                                        print("Fighting areas owners: " + game.players[game.continent.areas[area].owner].name + " Defending Against " + game.players[game.selected_area.owner].name)
+                                        turn, game.continent.areas[area], game.selected_area, succeded = game.attack(game.continent.areas[area], game.selected_area)
+                        if game.HUD.end_turn_rect.collidepoint(pos[0], pos[1]):
+                            turn = False
+                display_screen(game)
+            if game.selected_area:
+                game.selected_area.image = pygame.image.load("images/selection_area.png")
+                game.selected_area = None
+            display_screen(game)
+            return game.continent.areas, game.HUD, game.selected_area
         else:
-            return game.continent.areas  # just return, cannot pass because requires returned values
+            return game.continent.areas, game.HUD, game.selected_area  # just return, cannot pass because requires returned values
 
 class Area:
     def __init__(self, name="", area_pos=(0, 0), offset=(0, 0)):
@@ -245,6 +281,26 @@ class HUD:
         self.hudbar_bottom_rect = self.hudbar_image.get_rect()
         self.hudbar_bottom_rect.center = (DisplayParams.center[0], DisplayParams.size[1] - 24)
 
+def display_screen(game):
+    screen.fill(black)
+    screen.blit(game.background_image, game.background_rect)
+    screen.blit(game.continent_image, game.continent_rect)
+    for area in range(len(game.continent.areas)):
+        font = pygame.font.Font(None, 64)
+        count_image = font.render(str(game.continent.areas[area].count), False, game.players[game.continent.areas[area].owner].color)
+        count_rect = count_image.get_rect()
+        count_rect.center = (game.continent.areas[area].rect.center[0] - game.continent.areas[area].count_pos_offset[0], game.continent.areas[area].rect.center[1] - game.continent.areas[area].count_pos_offset[1])
+        screen.blit(game.continent.areas[area].image, game.continent.areas[area].rect)
+        screen.blit(count_image, count_rect)
+    screen.blit(game.HUD.hudbar_image, game.HUD.hudbar_top_rect)
+    screen.blit(game.HUD.hudbar_image, game.HUD.hudbar_bottom_rect)
+    screen.blit(game.HUD.end_turn_image, game.HUD.end_turn_rect)
+    screen.blit(game.HUD.select_image, game.HUD.select_rect)
+    screen.blit(game.HUD.turn_play_image, game.HUD.turn_play_rect)
+    screen.blit(game.HUD.game_name_image, game.HUD.game_name_rect)
+    screen.blit(game.HUD.info_image, game.HUD.info_rect)
+    screen.blit(game.HUD.play_name_image, game.HUD.play_name_rect)
+    pygame.display.flip()
 
 class Game:
     def __init__(self, name="", maxturns=1000):
@@ -260,6 +316,7 @@ class Game:
         self.continent_rect.center = DisplayParams.center
         self.selected_area = None
         self.HUD = HUD()
+        self.mission_index = randint(0, len(self.continent.areas) - 1)
 
     def attack(self, attack_area, selected_area):
         has_conquered = False
@@ -270,6 +327,9 @@ class Game:
             if selected_area.count < 2:
                 self.HUD = log_action(self, "Not enough troops, skipping")
                 return not has_conquered, attack_area, selected_area, has_conquered
+            sleep(0.05)
+            attack_area.image = pygame.image.load("images/selection_area_attack.png")
+            display_screen(self)
             match self.name:
                 case "conquest_classic":
                     lose_win = randint(0, 15)
@@ -280,16 +340,20 @@ class Game:
                         self.HUD = log_action(self, "Attacker Lost")
                         selected_area.count -= 1
                 case "conquest_mission":
-                    lose_win = randint(0, 11)
+                    lose_win = randint(0, 15)
                     if lose_win < 5:
+                        self.HUD = log_action(self, "Defender Lost")
                         attack_area.count -= 1
                     else:
+                        self.HUD = log_action(self, "Attacker Lost")
                         selected_area.count -= 1
                 case "conquest_invasion":
-                    lose_win = randint(0, 11)
+                    lose_win = randint(0, 15)
                     if lose_win < 5:
+                        self.HUD = log_action(self, "Defender Lost")
                         attack_area.count -= 1
                     else:
+                        self.HUD = log_action(self, "Attacker Lost")
                         selected_area.count -= 1
                 case "conquest_multiplayer":
                     print("Multiplayer unsupported!")
@@ -315,6 +379,7 @@ class Game:
                     attack_area.count = 0  # reset the count
                     attack_area.count = -1 + selected_area.count  # move all except one troop into invaded territory
                     selected_area.count -= selected_area.count - 1  # leave one troop
+        attack_area.image = pygame.image.load("images/selection_area.png")
         return not has_conquered, attack_area, selected_area, has_conquered
 
 
@@ -333,28 +398,6 @@ def start_game(game_type):
         case _:
             raise ValueError("Game type not specified or not known.")
 
-
-def display_screen(game):
-    screen.fill(black)
-    screen.blit(game.background_image, game.background_rect)
-    screen.blit(game.continent_image, game.continent_rect)
-    for area in range(len(game.continent.areas)):
-        font = pygame.font.Font(None, 64)
-        count_image = font.render(str(game.continent.areas[area].count), False, game.players[game.continent.areas[area].owner].color)
-        count_rect = count_image.get_rect()
-        count_rect.center = (game.continent.areas[area].rect.center[0] - game.continent.areas[area].count_pos_offset[0], game.continent.areas[area].rect.center[1] - game.continent.areas[area].count_pos_offset[1])
-        screen.blit(game.continent.areas[area].image, game.continent.areas[area].rect)
-        screen.blit(count_image, count_rect)
-    screen.blit(game.HUD.hudbar_image, game.HUD.hudbar_top_rect)
-    screen.blit(game.HUD.hudbar_image, game.HUD.hudbar_bottom_rect)
-    screen.blit(game.HUD.end_turn_image, game.HUD.end_turn_rect)
-    screen.blit(game.HUD.select_image, game.HUD.select_rect)
-    screen.blit(game.HUD.turn_play_image, game.HUD.turn_play_rect)
-    screen.blit(game.HUD.game_name_image, game.HUD.game_name_rect)
-    screen.blit(game.HUD.info_image, game.HUD.info_rect)
-    screen.blit(game.HUD.play_name_image, game.HUD.play_name_rect)
-    pygame.display.flip()
-
 def log_action(game, msg):
     font = pygame.font.Font(None, 32)
     game.HUD.info_image = font.render(str(msg), False, black)
@@ -362,7 +405,53 @@ def log_action(game, msg):
     game.HUD.info_rect.center = (DisplayParams.center[0] + (DisplayParams.center[0] - DisplayParams.size[0] / 8), 24)
     return game.HUD
 
+def menu_transition_close():
+    pass
+    """overlay = pygame.image.load("images/menu_transition_scale.png")
+    rect = overlay.get_rect()
+    rect.center = (DisplayParams.center[0], DisplayParams.center[1])
+    scale = 1  # ends at 6
+    size = overlay.get_size()
+    size = (size[0] * scale, size[1] * scale)
+    overlay = pygame.transform.scale(overlay, size)
+    screen.blit(overlay, rect)
+    pygame.display.flip()
+    step = 1
+    while step <= 6:
+        sleep(0.125)
+        size = overlay.get_size()
+        size = (size[0] * step, size[1] * step)
+        overlay = pygame.transform.scale(overlay, size)
+        rect = overlay.get_rect()
+        rect.center = (DisplayParams.center[0], DisplayParams.center[1])
+        screen.blit(overlay, rect)
+        pygame.display.flip()
+        step += 0.125"""
+        
+
+def menu_transition_open():
+    pass
+    """overlay = pygame.image.load("images/menu_transition_scale.png")
+    rect = overlay.get_rect()
+    rect.center = (DisplayParams.center[0], DisplayParams.center[1])
+    scale = 6  # ends at 1
+    size = overlay.get_size()
+    size = (size[0] * scale, size[1] * scale)
+    overlay = pygame.transform.scale(overlay, size)
+    screen.blit(overlay, rect)
+    pygame.display.flip()
+    step = 6
+    while step > 1:  # should run through 48 times
+        sleep(0.125)
+        size = overlay.get_size()
+        size = (size[0] * step, size[1] * step)
+        overlay = pygame.transform.scale(overlay, size)
+        screen.blit(overlay, rect)
+        pygame.display.flip()
+        step -= 0.125"""
+
 def play_game_classic():
+    menu_transition_open()
     play_track("music/play.wav", 0.5)
     game = Game("conquest_classic")
     game.players = {"player1": Player("player1", "player"), "bot1": Player("bot1", "bot"), "": Player("gaia1", "unclaimed")}
@@ -385,10 +474,90 @@ def play_game_classic():
     has_won = False
     has_lost = False
     while (game.maxturns > turns) and (has_quit is False) and not (has_won is True) and not (has_lost is True):
+        font = pygame.font.Font(None, 48)
+        player_areas = 0
+        bot_areas = 0
+        display_screen(game)
+        bot_areas = 0
+        player_areas = 0
+        bot_owned_areas = []
+        for area in range(len(game.continent.areas)):
+            if game.continent.areas[area].owner == "bot1":
+                bot_areas += 1
+                bot_owned_areas.append(game.continent.areas[area])
+            elif game.continent.areas[area].owner == "player1":
+                player_areas += 1
+        if bot_areas <= 0:
+            has_won = True
+            display_screen(game)
+            game.HUD = log_action(game, "Bot1 has lost")
+            break
+        if player_areas <= 0:
+            has_lost = True
+            display_screen(game)
+            game.HUD = log_action(game, "Player1 has lost")
+            break
+        game.HUD.select_image = font.render("Selected: ", False, black)
+        game.HUD.select_rect = game.HUD.select_image.get_rect()
+        game.HUD.select_rect.center = (DisplayParams.center[0] - (DisplayParams.center[0] - DisplayParams.size[0] / 8), DisplayParams.size[1] - 24)
+        for player in game.players:
+            game.HUD.select_image = font.render("Selected: ", False, black)
+            game.HUD.select_rect = game.HUD.select_image.get_rect()
+            game.HUD.select_rect.center = (DisplayParams.center[0] - (DisplayParams.center[0] - DisplayParams.size[0] / 8), DisplayParams.size[1] - 24)
+            sleep(0.05)
+            game.continent.areas, game.HUD, game.selected_area = game.players[player].turn(game)
+        turns += 1
+        if game.continent.areas[player_home].owner == "player1":
+            game.continent.areas[player_home].count += player_areas  # make it so that you can't get stuck, especially when attacked by the bot1 player.
+        else:
+            for area in range(len(game.continent.areas)):
+                if game.continent.areas[area].owner == "player1":
+                    player_home = area
+            game.continent.areas[player_home].count += player_areas  # do the same, but after having found a new home base
+        for area in range(len(game.continent.areas)):
+            if game.continent.areas[area].owner == "bot1":
+                bot_home = area
+        game.continent.areas[bot_home].count += bot_areas   # this may make it take a while to kill them, but they aren't going for world domination.
+    if has_won is True:
+        print("Player1 has won!")
+        sleep(1)
+        win_game(game.players["player1"].display_name)
+    elif has_lost is True:
+        print("Player1 has lost.")
+        sleep(1)
+        lose_game()
+    menu_transition_close()
+
+
+def play_game_mission():
+    menu_transition_open()
+    play_track("music/play.wav", 0.5)
+    """game = Game("conquest_classic")
+    game.players = {"player1": Player("player1", "player"), "bot1": Player("bot1", "bot"), "": Player("gaia1", "unclaimed")}
+    game.players["player1"].color = blue
+    game.players["bot1"].color = red
+    game.players[""].color = white
+    for area in range(len(game.continent.areas)):
+        game.continent.areas[area].owner = ""
+        game.continent.areas[area].count = 5
+    random_area = randint(0, len(game.continent.areas) - 1)
+    game.continent.areas[random_area].owner = "player1"
+    game.continent.areas[random_area].count = 10
+    player_home = random_area
+    bot_home = random_area - 1
+    game.continent.areas[random_area - 1].owner = "bot1"
+    game.continent.areas[random_area - 1].count = 10
+    game.bot_selected_area = game.continent.areas[random_area - 1]
+    turns = 0
+    has_quit = False
+    has_won = False
+    has_lost = False
+    while (game.maxturns > turns) and (has_quit is False) and not (has_won is True) and not (has_lost is True):
         turn = True
         font = pygame.font.Font(None, 48)
         player_areas = 0
         bot_areas = 0
+        game.HUD = log_action(game, "Mission: Capture " + game.continent.areas[game.mission_index].display_name)
         display_screen(game)
         turns += 1
         while turn is True:
@@ -416,24 +585,19 @@ def play_game_classic():
                                     turn, game.continent.areas[area], game.selected_area, succeded = game.attack(game.continent.areas[area], game.selected_area)
                     if game.HUD.end_turn_rect.collidepoint(pos[0], pos[1]):
                         turn = False
-            bot_areas = 0
             player_areas = 0
-            bot_owned_areas = []
-            for area in range(len(game.continent.areas)):
-                if game.continent.areas[area].owner == "bot1":
-                    bot_areas += 1
-                    bot_owned_areas.append(game.continent.areas[area])
-                elif game.continent.areas[area].owner == "player1":
-                    player_areas += 1
-            if bot_areas <= 0:
-                has_won = True
+            if game.continent.areas[game.mission_index].owner == "player1":
+                game.HUD = log_action(game, "Player1 has won")
                 display_screen(game)
-                game.HUD = log_action(game, "Bot1 has lost")
+                has_won = True
                 break
+            for area in range(len(game.continent.areas)):
+                if game.continent.areas[area].owner == "player1":
+                    player_areas += 1
             if player_areas <= 0:
                 has_lost = True
-                display_screen(game)
                 game.HUD = log_action(game, "Player1 has lost")
+                display_screen(game)
                 break
             display_screen(game)
             turns += 1
@@ -444,6 +608,7 @@ def play_game_classic():
         game.HUD.select_rect = game.HUD.select_image.get_rect()
         game.HUD.select_rect.center = (DisplayParams.center[0] - (DisplayParams.center[0] - DisplayParams.size[0] / 8), DisplayParams.size[1] - 24)
         for player in game.players:
+            sleep(0.05)
             game.continent.areas = game.players[player].turn(game)
         if game.continent.areas[player_home].owner == "player1":
             game.continent.areas[player_home].count += player_areas  # make it so that you can't get stuck, especially when attacked by the bot1 player.
@@ -464,23 +629,95 @@ def play_game_classic():
     elif has_lost is True:
         print("Player1 has lost.")
         sleep(1)
-        lose_game()
-
-
-def play_game_mission():
-    play_track("music/play.wav", 0.5)
+        lose_game()"""
+    menu_transition_close()
 
 
 def play_game_invasion():
+    menu_transition_open()
     play_track("music/play.wav", 0.5)
+    game = Game("conquest_classic")
+    game.players = {"player1": Player("player1", "player"), "bot1": Player("bot1", "bot"), "": Player("gaia1", "unclaimed")}
+    game.players["player1"].color = blue
+    game.players["bot1"].color = red
+    game.players[""].color = white
+    for area in range(len(game.continent.areas)):
+        game.continent.areas[area].owner = ""
+        game.continent.areas[area].count = 0
+    random_area = randint(0, len(game.continent.areas) - 1)
+    game.continent.areas[random_area].owner = "player1"
+    game.continent.areas[random_area].count = 10
+    player_home = random_area
+    bot_home = random_area - 1
+    game.continent.areas[random_area - 1].owner = "bot1"
+    game.continent.areas[random_area - 1].count = 10
+    game.bot_selected_area = game.continent.areas[random_area - 1]
+    turns = 0
+    has_quit = False
+    has_won = False
+    has_lost = False
+    while (game.maxturns > turns) and (has_quit is False) and not (has_won is True) and not (has_lost is True):
+        font = pygame.font.Font(None, 48)
+        player_areas = 0
+        bot_areas = 0
+        display_screen(game)
+        bot_areas = 0
+        player_areas = 0
+        bot_owned_areas = []
+        for area in range(len(game.continent.areas)):
+            if game.continent.areas[area].owner == "bot1":
+                bot_areas += 1
+                bot_owned_areas.append(game.continent.areas[area])
+            elif game.continent.areas[area].owner == "player1":
+                player_areas += 1
+        if bot_areas <= 0:
+            has_won = True
+            display_screen(game)
+            game.HUD = log_action(game, "Bot1 has lost")
+            break
+        if random_area.owner != "player1":
+            has_lost = True
+            display_screen(game)
+            game.HUD = log_action(game, "Player1 has lost")
+            break
+        game.HUD.select_image = font.render("Selected: ", False, black)
+        game.HUD.select_rect = game.HUD.select_image.get_rect()
+        game.HUD.select_rect.center = (DisplayParams.center[0] - (DisplayParams.center[0] - DisplayParams.size[0] / 8), DisplayParams.size[1] - 24)
+        for player in game.players:
+            game.HUD.select_image = font.render("Selected: ", False, black)
+            game.HUD.select_rect = game.HUD.select_image.get_rect()
+            game.HUD.select_rect.center = (DisplayParams.center[0] - (DisplayParams.center[0] - DisplayParams.size[0] / 8), DisplayParams.size[1] - 24)
+            sleep(0.05)
+            game.continent.areas, game.HUD, game.selected_area = game.players[player].turn(game)
+        turns += 1
+        if game.continent.areas[player_home].owner == "player1":
+            game.continent.areas[player_home].count += player_areas  # make it so that you can't get stuck, especially when attacked by the bot1 player.
+        else:
+            for area in range(len(game.continent.areas)):
+                if game.continent.areas[area].owner == "player1":
+                    player_home = area
+            game.continent.areas[player_home].count += player_areas  # do the same, but after having found a new home base
+        for area in range(len(game.continent.areas)):
+            if game.continent.areas[area].owner == "bot1":
+                bot_home = area
+        game.continent.areas[bot_home].count += bot_areas   # this may make it take a while to kill them, but they aren't going for world domination.
+    if has_won is True:
+        print("Player1 has won!")
+        sleep(1)
+        win_game(game.players["player1"].display_name)
+    elif has_lost is True:
+        print("Player1 has lost.")
+        sleep(1)
+        lose_game()
+    menu_transition_close()
 
 
 def play_game_multiplayer():
     play_track("music/play.wav", 0.5)
     print("Multiplayer is not implemented in this version, please just use singleplayer campaigns.")
 
-
 def win_game(player):
+    menu_transition_open()
     global menu_is_going
     play_track("music/win.wav", 0.5)
     font = pygame.font.Font(None, DisplayParams.title_size)
@@ -520,9 +757,11 @@ def win_game(player):
         pygame.display.flip()
     play_track("music/background.wav", 0.5)
     menu_is_going = True
+    menu_transition_close()
 
 
 def lose_game(player):
+    menu_transition_open()
     global menu_is_going
     play_track("music/win.wav", 0.5)
     font = pygame.font.Font(None, DisplayParams.title_size)
@@ -562,6 +801,7 @@ def lose_game(player):
         pygame.display.flip()
     play_track("music/background.wav", 0.5)
     menu_is_going = True
+    menu_transition_close()
 
 
 def choose_offset(stage):
@@ -569,6 +809,7 @@ def choose_offset(stage):
 
 
 def choose_game():
+    menu_transition_open()
     unused_player_colors = colors[:]
     # setup
     global menu_is_going
@@ -635,6 +876,8 @@ def choose_game():
         screen.blit(back_img, back_rect)
         pygame.display.flip()
     play_track("music/background.wav", 0.5)
+    if not choosing:
+        menu_transition_close()
 
 font = pygame.font.Font(None, DisplayParams.title_size)
 title_img = font.render("Main Menu", False, darkgrey)
@@ -659,8 +902,10 @@ while menu_is_going is True:
     if event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed():
         pos = pygame.mouse.get_pos()
         if play_rect.collidepoint(pos[0], pos[1]):
+            menu_transition_close()
             choose_game()
         elif quit_rect.collidepoint(pos[0], pos[1]):
+            menu_transition_close()
             menu_is_going = False
 
     screen.fill(darkgrey)
