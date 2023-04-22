@@ -152,13 +152,14 @@ class Player:
             else:
                 bot_turn = False
             bot_attackbles = []
-            for area in range(len(game.continent.areas)):
-                if game.continent.areas[area].owner == "player1" or game.continent.areas[area].owner == "":
+            for area in range(len(game.continent.areas)): # find an attackable area
+                if game.continent.areas[area].owner != self.name:
+                    bot_attackbles.append(game.continent.areas[area])
                     bot_attack = game.continent.areas[area]
                     break
             bot_attack_index = 0
             for area in range(len(game.continent.areas)):
-                if game.continent.areas[area].owner == "player1" or game.continent.areas[area].owner == "":
+                if game.continent.areas[area].owner != self.name:
                     if game.continent.areas[area].count < bot_attack.count:
                         bot_attack = game.continent.areas[area]
                         bot_attack_index = area
@@ -185,6 +186,9 @@ class Player:
                         for area in range(len(game.continent.areas)):
                             if game.continent.areas[area].rect.collidepoint(pos[0], pos[1]):
                                 if game.continent.areas[area].owner == "player1":
+                                    if game.selected_area:
+                                        game.selected_area.image = pygame.image.load("images/selection_area.png")
+                                        game.selected_area = None
                                     game.selected_area = game.continent.areas[area]
                                     game.selected_area.image = pygame.image.load("images/selection_area_selected.png")
                                     game.HUD.select_image = font.render("Selected: " + game.continent.areas[area].display_name, False, black)
@@ -195,6 +199,7 @@ class Player:
                                         game.HUD = log_action(game, "No selection")
                                     else:
                                         print("Player1 attacking area: " + game.continent.areas[area].name + ", From: " + game.selected_area.name)
+                                        print("Fighting areas owners: " + game.players[game.continent.areas[area].owner].name + " Defending Against " + game.players[game.selected_area.owner].name)
                                         turn, game.continent.areas[area], game.selected_area, succeded = game.attack(game.continent.areas[area], game.selected_area)
                         if game.HUD.end_turn_rect.collidepoint(pos[0], pos[1]):
                             turn = False
