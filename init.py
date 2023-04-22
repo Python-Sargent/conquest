@@ -398,6 +398,7 @@ def start_game(game_type):
         case _:
             raise ValueError("Game type not specified or not known.")
 
+
 def log_action(game, msg):
     font = pygame.font.Font(None, 32)
     game.HUD.info_image = font.render(str(msg), False, black)
@@ -405,8 +406,27 @@ def log_action(game, msg):
     game.HUD.info_rect.center = (DisplayParams.center[0] + (DisplayParams.center[0] - DisplayParams.size[0] / 8), 24)
     return game.HUD
 
+
 def menu_transition_close():
-    pass
+    # Get the current display surface
+    screen_surface = pygame.display.get_surface()
+    opacity = 25
+    while opacity < 255:
+        # Create a new overlay to hold the overlay
+        overlay = pygame.Surface(screen_surface.get_size(), pygame.SRCALPHA)
+        # Copy the contents of the screen to the overlay
+        overlay.blit(screen_surface, (0, 0))
+
+        overlay.fill((200, 200, 200, opacity), None, pygame.BLEND_RGBA_MULT)
+
+        screen.blit(overlay, (0, 0))
+        pygame.display.flip()
+        pygame.time.wait(10)
+        opacity += 10
+        opacity = min(opacity, 255)
+        del overlay
+
+    del screen_surface
     """overlay = pygame.image.load("images/menu_transition_scale.png")
     rect = overlay.get_rect()
     rect.center = (DisplayParams.center[0], DisplayParams.center[1])
@@ -427,7 +447,7 @@ def menu_transition_close():
         screen.blit(overlay, rect)
         pygame.display.flip()
         step += 0.125"""
-        
+
 
 def menu_transition_open():
     pass
@@ -437,17 +457,20 @@ def menu_transition_open():
     scale = 6  # ends at 1
     size = overlay.get_size()
     size = (size[0] * scale, size[1] * scale)
-    overlay = pygame.transform.scale(overlay, size)
-    screen.blit(overlay, rect)
+    scaled_overlay = pygame.transform.scale(overlay, size)
+    screen.blit(scaled_overlay, rect)
+    del scaled_overlay
     pygame.display.flip()
     step = 6
     while step > 1:  # should run through 48 times
-        sleep(0.125)
+        print("Step:" + str(step) + " size:" + str(size) + " rect.center:" + str(rect.center ))
+        sleep(0.025)
         size = overlay.get_size()
         size = (size[0] * step, size[1] * step)
-        overlay = pygame.transform.scale(overlay, size)
-        screen.blit(overlay, rect)
+        scaled_overlay = pygame.transform.scale(overlay, size)
+        screen.blit(scaled_overlay, rect)
         pygame.display.flip()
+        del scaled_overlay
         step -= 0.125"""
 
 def play_game_classic():
@@ -634,7 +657,8 @@ def play_game_mission():
 
 
 def play_game_invasion():
-    menu_transition_open()
+    pass
+    """menu_transition_open()
     play_track("music/play.wav", 0.5)
     game = Game("conquest_classic")
     game.players = {"player1": Player("player1", "player"), "bot1": Player("bot1", "bot"), "": Player("gaia1", "unclaimed")}
@@ -709,7 +733,7 @@ def play_game_invasion():
         print("Player1 has lost.")
         sleep(1)
         lose_game()
-    menu_transition_close()
+    menu_transition_close()"""
 
 
 def play_game_multiplayer():
@@ -905,7 +929,6 @@ while menu_is_going is True:
             menu_transition_close()
             choose_game()
         elif quit_rect.collidepoint(pos[0], pos[1]):
-            menu_transition_close()
             menu_is_going = False
 
     screen.fill(darkgrey)
@@ -915,3 +938,5 @@ while menu_is_going is True:
     screen.blit(play_img, play_rect)
     screen.blit(quit_img, quit_rect)
     pygame.display.flip()
+
+pygame.quit()
