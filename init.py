@@ -410,7 +410,7 @@ def log_action(game, msg):
 def menu_transition_close():
     # Get the current display surface
     screen_surface = pygame.display.get_surface()
-    opacity = 25
+    opacity = 0
     while opacity < 255:
         # Create a new overlay to hold the overlay
         overlay = pygame.Surface(screen_surface.get_size(), pygame.SRCALPHA)
@@ -422,7 +422,7 @@ def menu_transition_close():
         screen.blit(overlay, (0, 0))
         pygame.display.flip()
         pygame.time.wait(10)
-        opacity += 10
+        opacity += 50
         opacity = min(opacity, 255)
         del overlay
 
@@ -450,7 +450,24 @@ def menu_transition_close():
 
 
 def menu_transition_open():
-    pass
+    # Get the current display surface
+    screen_surface = pygame.display.get_surface()
+    opacity = 255
+    while opacity > 0:
+        # Create a new overlay to hold the overlay
+        overlay = pygame.Surface(screen_surface.get_size(), pygame.SRCALPHA)
+        # Copy the contents of the screen to the overlay
+        overlay.blit(screen_surface, (0, 0))
+
+        overlay.fill((200, 200, 200, opacity), None, pygame.BLEND_RGBA_MULT)
+
+        screen.blit(overlay, (0, 0))
+        pygame.display.flip()
+        pygame.time.wait(10)
+        opacity -= 50
+        del overlay
+
+    del screen_surface
     """overlay = pygame.image.load("images/menu_transition_scale.png")
     rect = overlay.get_rect()
     rect.center = (DisplayParams.center[0], DisplayParams.center[1])
@@ -900,8 +917,7 @@ def choose_game():
         screen.blit(back_img, back_rect)
         pygame.display.flip()
     play_track("music/background.wav", 0.5)
-    if not choosing:
-        menu_transition_close()
+    menu_transition_close()
 
 font = pygame.font.Font(None, DisplayParams.title_size)
 title_img = font.render("Main Menu", False, darkgrey)
