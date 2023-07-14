@@ -47,7 +47,7 @@ class Easy:
     class invasion:
         start_count_player = 20
         start_count_bot = 10
-        start_count_gaia = 3
+        start_count_gaia = 5
         invasion_turns = 30
 
 class Normal:
@@ -64,7 +64,7 @@ class Normal:
     class invasion:
         start_count_player = 30
         start_count_bot = 30
-        start_count_gaia = 10
+        start_count_gaia = 7
         invasion_turns = 50
 
 class Hard:
@@ -226,6 +226,7 @@ class Player:
                                         game.selected_area = None
                                     game.selected_area = game.continent.areas[area]
                                     game.selected_area.image = pygame.image.load("images/selection_area_selected.png")
+                                    font = pygame.font.Font(None, 48)
                                     game.HUD.select_image = font.render("Selected: " + game.continent.areas[area].display_name, False, black)
                                     game.HUD.select_rect = game.HUD.select_image.get_rect()
                                     game.HUD.select_rect.center = (DisplayParams.center[0] - (DisplayParams.center[0] - DisplayParams.size[0] / 8), DisplayParams.size[1] - 24)
@@ -509,15 +510,36 @@ def menu_transition_open():
 def player_homes(game):
     for area in range(len(game.continent.areas)):
         game.continent.areas[area].owner = ""
-        game.continent.areas[area].count = game.difficulty.conquest.start_count_gaia
     random_area = randint(0, len(game.continent.areas) - 1)
     game.continent.areas[random_area].owner = "player1"
-    game.continent.areas[random_area].count = game.difficulty.conquest.start_count_player
     player_home = random_area
     bot_home = random_area - 1
     game.continent.areas[random_area - 1].owner = "bot1"
-    game.continent.areas[random_area - 1].count = game.difficulty.conquest.start_count_bot
     game.bot_selected_area = game.continent.areas[random_area - 1]
+    if game.name == "conquest_classic":
+        game.continent.areas[random_area].count = game.difficulty.conquest.start_count_player # TODO - NEEDS FIXING: Make game.difficulty use list game class
+        game.continent.areas[random_area - 1].count = game.difficulty.conquest.start_count_bot
+        for area in range(len(game.continent.areas)):
+            if game.continent.areas[area].owner == "":
+                game.continent.areas[area].count = game.difficulty.conquest.start_count_gaia
+    elif game.name == "conquest_mission":
+        game.continent.areas[random_area].count = game.difficulty.mission.start_count_player
+        game.continent.areas[random_area - 1].count = game.difficulty.mission.start_count_bot
+        for area in range(len(game.continent.areas)):
+            if game.continent.areas[area].owner == "":
+                game.continent.areas[area].count = game.difficulty.mission.start_count_gaia
+    elif game.name == "conquest_invasion":
+        game.continent.areas[random_area].count = game.difficulty.invasion.start_count_player
+        game.continent.areas[random_area - 1].count = game.difficulty.invasion.start_count_bot
+        for area in range(len(game.continent.areas)):
+            if game.continent.areas[area].owner == "":
+                game.continent.areas[area].count = game.difficulty.invasion.start_count_gaia
+    elif game.name == "conquest_multiplayer":
+        game.continent.areas[random_area].count = game.difficulty.conquest.start_count_player
+        game.continent.areas[random_area - 1].count = game.difficulty.conquest.start_count_bot
+        for area in range(len(game.continent.areas)):
+            if game.continent.areas[area].owner == "":
+                game.continent.areas[area].count = game.difficulty.multiplayer.start_count_gaia
     return player_home, bot_home, game
 
 def play_game_classic():
