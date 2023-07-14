@@ -33,25 +33,56 @@ class DisplayParams:
     title_size = 128
     center = (0, 0)
 
-""" TODO this is for difficulty stuff (maybe later)
-dificulty_mode = input(str("Enter Dificulty Mode (easy, normal, hard, dad): "))
+class Easy:
+    bot_attack_threshold = 5
+    gain_basis = 4
+    class conquest:
+        start_count_player = 10
+        start_count_bot = 10
+        start_count_gaia = 1
+    class mission:
+        start_count_player = 30
+        start_count_bot = 20
+        start_count_gaia = 10
+    class invasion:
+        start_count_player = 20
+        start_count_bot = 10
+        start_count_gaia = 3
+        invasion_turns = 30
 
-class ModeData:
-    def __init__(self, mode):
-        self.mode = mode
-        if self.mode == "normal":
-            self.troop_gain = 1
-            self.troop_loss = 1
-        elif self.mode == "easy":
-            self.troop_gain = 2
-            self.troop_loss = 1
-        elif self.mode == "hard":
-            self.troop_gain = 1
-            self.troop_loss = 2
-        elif self.mode == "dad":
-            self.troop_gain = 5
-            self.troop_loss = 1
-"""
+class Normal:
+    bot_attack_threshold = 4
+    gain_basis = 5
+    class conquest:
+        start_count_player = 20
+        start_count_bot = 20
+        start_count_gaia = 5
+    class mission:
+        start_count_player = 25
+        start_count_bot = 25
+        start_count_gaia = 13
+    class invasion:
+        start_count_player = 30
+        start_count_bot = 30
+        start_count_gaia = 10
+        invasion_turns = 50
+
+class Hard:
+    bot_attack_threshold = 3
+    gain_basis = 6
+    class conquest:
+        start_count_player = 25
+        start_count_bot = 30
+        start_count_gaia = 8
+    class mission:
+        start_count_player = 20
+        start_count_bot = 30
+        start_count_gaia = 15
+    class invasion:
+        start_count_player = 30
+        start_count_bot = 30
+        start_count_gaia = 10
+        invasion_turns = 75
 
 DisplayParams.center = (DisplayParams.size[0] / 2, DisplayParams.size[1] / 2)
 
@@ -81,6 +112,8 @@ colors = [red, orange, yellow, green, cyan, blue, purple, black, white]
 Font = pygame.font.Font
 
 volume = 0.5
+
+hardness = Easy
 
 # splash screen
 
@@ -165,7 +198,7 @@ class Player:
                     if game.continent.areas[area].count < bot_attack.count:
                         bot_attack = game.continent.areas[area]
                         bot_attack_index = area
-            while bot_turn is True and game.bot_selected_area.count > bot_attack.count * 4:  #1 less than the loss level (5 - 1 = 4); this little bot takes chances
+            while bot_turn is True and game.bot_selected_area.count > bot_attack.count * game.difficulty.bot_attack_threshold:
                 print(self.display_name + " Attacking: " + game.continent.areas[bot_attack_index].name + ", From: " + game.bot_selected_area.name)
                 bot_turn, game.continent.areas[bot_attack_index], game.bot_selected_area, has_succeded = game.attack(game.continent.areas[bot_attack_index], game.bot_selected_area)
                 bot_selectable_areas.remove(game.bot_selected_area)
@@ -319,6 +352,7 @@ class Game:
         self.selected_area = None
         self.HUD = HUD()
         self.mission_index = randint(0, len(self.continent.areas) - 1)
+        self.difficulty = hardness()
 
     def attack(self, attack_area, selected_area):
         has_conquered = False
@@ -332,33 +366,13 @@ class Game:
             sleep(0.05)
             attack_area.image = pygame.image.load("images/selection_area_attack.png")
             display_screen(self)
-            match self.name:
-                case "conquest_classic":
-                    lose_win = randint(0, 15)
-                    if lose_win < 5:
-                        self.HUD = log_action(self, "Defender Lost")
-                        attack_area.count -= 1
-                    else:
-                        self.HUD = log_action(self, "Attacker Lost")
-                        selected_area.count -= 1
-                case "conquest_mission":
-                    lose_win = randint(0, 15)
-                    if lose_win < 5:
-                        self.HUD = log_action(self, "Defender Lost")
-                        attack_area.count -= 1
-                    else:
-                        self.HUD = log_action(self, "Attacker Lost")
-                        selected_area.count -= 1
-                case "conquest_invasion":
-                    lose_win = randint(0, 15)
-                    if lose_win < 5:
-                        self.HUD = log_action(self, "Defender Lost")
-                        attack_area.count -= 1
-                    else:
-                        self.HUD = log_action(self, "Attacker Lost")
-                        selected_area.count -= 1
-                case "conquest_multiplayer":
-                    print("Multiplayer unsupported!")
+            lose_win = randint(0, 15)
+            if lose_win < self.difficulty.gain_basis:
+                self.HUD = log_action(self, "Defender Lost")
+                attack_area.count -= 1
+            else:
+                self.HUD = log_action(self, "Attacker Lost")
+                selected_area.count -= 1
             if attack_area.count < 1 and selected_area.count > 1:
                 if selected_area.owner == "player1":
                     has_conquered = True
@@ -492,6 +506,20 @@ def menu_transition_open():
         del scaled_overlay
         step -= 0.125"""
 
+def player_homes(game):
+    for area in range(len(game.continent.areas)):
+        game.continent.areas[area].owner = ""
+        game.continent.areas[area].count = game.difficulty.conquest.start_count_gaia
+    random_area = randint(0, len(game.continent.areas) - 1)
+    game.continent.areas[random_area].owner = "player1"
+    game.continent.areas[random_area].count = game.difficulty.conquest.start_count_player
+    player_home = random_area
+    bot_home = random_area - 1
+    game.continent.areas[random_area - 1].owner = "bot1"
+    game.continent.areas[random_area - 1].count = game.difficulty.conquest.start_count_bot
+    game.bot_selected_area = game.continent.areas[random_area - 1]
+    return player_home, bot_home, game
+
 def play_game_classic():
     menu_transition_open()
     play_track("music/play.wav", volume)
@@ -500,17 +528,7 @@ def play_game_classic():
     game.players["player1"].color = blue
     game.players["bot1"].color = red
     game.players[""].color = white
-    for area in range(len(game.continent.areas)):
-        game.continent.areas[area].owner = ""
-        game.continent.areas[area].count = 0
-    random_area = randint(0, len(game.continent.areas) - 1)
-    game.continent.areas[random_area].owner = "player1"
-    game.continent.areas[random_area].count = 10
-    player_home = random_area
-    bot_home = random_area - 1
-    game.continent.areas[random_area - 1].owner = "bot1"
-    game.continent.areas[random_area - 1].count = 10
-    game.bot_selected_area = game.continent.areas[random_area - 1]
+    player_home, bot_home, game = player_homes(game)
     turns = 0
     has_quit = False
     has_won = False
@@ -579,22 +597,7 @@ def play_game_mission():
     game.players["player1"].color = blue
     game.players["bot1"].color = red
     game.players[""].color = white
-    for area in range(len(game.continent.areas)):
-        game.continent.areas[area].owner = ""
-        game.continent.areas[area].count = 3
-    game.continent.areas[game.mission_index].count = 20
-    player_homes = []
-    for area in range(len(game.continent.areas)):
-        if area != game.mission_index:
-            player_homes.append(game.continent.areas[area])
-    random_area = randint(0, len(player_homes) - 1)
-    game.continent.areas[random_area].owner = "player1"
-    game.continent.areas[random_area].count = 10
-    player_home = random_area
-    bot_home = random_area - 1
-    game.continent.areas[random_area - 1].owner = "bot1"
-    game.continent.areas[random_area - 1].count = 10
-    game.bot_selected_area = game.continent.areas[random_area - 1]
+    player_home, bot_home, game = player_homes(game)
     turns = 0
     has_quit = False
     has_won = False
@@ -659,22 +662,12 @@ def play_game_mission():
 def play_game_invasion():
     menu_transition_open()
     play_track("music/play.wav", volume)
-    game = Game("conquest_classic", 50) # defend for N turns
+    game = Game("conquest_classic", 20) # defend for N turns
     game.players = {"player1": Player("player1", "player"), "bot1": Player("bot1", "bot"), "": Player("gaia1", "unclaimed")}
     game.players["player1"].color = blue
     game.players["bot1"].color = red
     game.players[""].color = white
-    for area in range(len(game.continent.areas)):
-        game.continent.areas[area].owner = ""
-        game.continent.areas[area].count = 0
-    random_area = randint(0, len(game.continent.areas) - 1)
-    game.continent.areas[random_area].owner = "player1"
-    game.continent.areas[random_area].count = 20
-    player_home = random_area
-    bot_home = random_area - 1
-    game.continent.areas[random_area - 1].owner = "bot1"
-    game.continent.areas[random_area - 1].count = 10
-    game.bot_selected_area = game.continent.areas[random_area - 1]
+    player_home, bot_home, game = player_homes(game)
     turns = 0
     has_quit = False
     has_won = False
@@ -825,6 +818,73 @@ def lose_game(player):
 def choose_offset(stage):
     return DisplayParams.center[0], DisplayParams.center[1] + 72 * stage - DisplayParams.size[1] / 4 + 56
 
+def options():
+    menu_transition_open()
+    global menu_is_going
+    global hardness
+    options_continue = True
+    font = pygame.font.Font(None, DisplayParams.title_size)
+    title_img = font.render("Options", False, darkgrey)
+    title_rect = title_img.get_rect()
+    title_rect.center = (choose_offset(0))
+
+    font = pygame.font.Font(None, DisplayParams.text_size)
+    sect_img = font.render("Difficulty:", False, darkgrey2)
+    sect_rect = sect_img.get_rect()
+    sect_rect.center = (choose_offset(1))
+    
+    font = pygame.font.Font(None, DisplayParams.text_size)
+    opt1_img = font.render("Easy", False, darkgrey2)
+    opt1_rect = opt1_img.get_rect()
+    opt1_rect.center = (choose_offset(2))
+    
+    font = pygame.font.Font(None, DisplayParams.text_size)
+    opt2_img = font.render("Normal", False, darkgrey2)
+    opt2_rect = opt2_img.get_rect()
+    opt2_rect.center = (choose_offset(3))
+    
+    font = pygame.font.Font(None, DisplayParams.text_size)
+    opt3_img = font.render("Hard", False, darkgrey2)
+    opt3_rect = opt3_img.get_rect()
+    opt3_rect.center = (choose_offset(4))
+
+    back_img = font.render("Back", False, darkgrey2)
+    back_rect = back_img.get_rect()
+    back_rect.center = (choose_offset(5))
+
+    play_track("music/background2.wav", volume)
+    while options_continue is True:
+        clock.tick(30)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                options_continue = False
+                menu_is_going = False
+            elif event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed():
+                pos = pygame.mouse.get_pos()
+                if opt1_rect.collidepoint(pos[0], pos[1]):
+                    hardness = Easy
+                    print("Difficulty: Easy")
+                elif opt2_rect.collidepoint(pos[0], pos[1]):
+                    hardness = Normal
+                    print("Difficulty: Normal")
+                elif opt3_rect.collidepoint(pos[0], pos[1]):
+                    hardness = Hard
+                    print("Difficulty: Hard")
+                elif back_rect.collidepoint(pos[0], pos[1]):
+                    options_continue = False
+
+        screen.fill(darkgrey)
+        screen.blit(background_image, background_rect)
+        screen.blit(word_cover_img, word_cover_rect)
+        screen.blit(title_img, title_rect)
+        screen.blit(sect_img, sect_rect)
+        screen.blit(opt1_img, opt1_rect)
+        screen.blit(opt2_img, opt2_rect)
+        screen.blit(opt3_img, opt3_rect)
+        screen.blit(back_img, back_rect)
+        pygame.display.flip()
+    play_track("music/background.wav", volume)
+    menu_transition_close()
 
 def choose_game():
     menu_transition_open()
@@ -906,9 +966,14 @@ play_img = font.render("Play", False, darkgrey2)
 play_rect = play_img.get_rect()
 play_rect.center = (DisplayParams.center[0], DisplayParams.center[1])
 
+font = pygame.font.Font(None, DisplayParams.text_size)
+opt_img = font.render("Options", False, darkgrey2)
+opt_rect = opt_img.get_rect()
+opt_rect.center = (DisplayParams.center[0], DisplayParams.center[1] + 56)
+
 quit_img = font.render("Quit", False, darkgrey2)
 quit_rect = quit_img.get_rect()
-quit_rect.center = (DisplayParams.center[0], DisplayParams.center[1] + 56)
+quit_rect.center = (DisplayParams.center[0], DisplayParams.center[1] + 56*2)
 
 mute_image = pygame.image.load("images/mute.png")
 unmute_image = mute_image = pygame.image.load("images/unmute.png")
@@ -936,6 +1001,9 @@ while menu_is_going is True:
         elif play_rect.collidepoint(pos[0], pos[1]):
             menu_transition_close()
             choose_game()
+        elif opt_rect.collidepoint(pos[0], pos[1]):
+            menu_transition_close()
+            options()
         elif quit_rect.collidepoint(pos[0], pos[1]):
             menu_is_going = False
 
@@ -945,6 +1013,7 @@ while menu_is_going is True:
     screen.blit(mute_toggle_image, mute_rect)
     screen.blit(title_img, title_rect)
     screen.blit(play_img, play_rect)
+    screen.blit(opt_img, opt_rect)
     screen.blit(quit_img, quit_rect)
     pygame.display.flip()
 
