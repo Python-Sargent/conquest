@@ -6,7 +6,12 @@ Conquest is a game I created to learn more about Pygame.
 If you wish to contribute to this project you can contact me or create a pull request.
 
 ## Running
-This game should run as-is with the following dependencies: `python 3.1` and `pygame`
+### Requirements
+* Python `pygame` module
+* Python 3.1+
+
+### Running the Game
+This game should run as-is with the `pygame` python module.
 install the pygame dependency:
 Windows:
 ```
@@ -21,7 +26,7 @@ sudo pacman -S python-pygame
 Once `pygame` is installed run:
 ```
 git clone https://github.com/Python-Sargent/conquest.git
-cd Conquest
+cd conquest
 python init.py
 ```
 The game should run.
